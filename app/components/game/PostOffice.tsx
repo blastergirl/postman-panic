@@ -1,20 +1,22 @@
 interface PostOfficeProps {
   position: { x: number; y: number };
+  containerSize: { width: number; height: number };
 }
 
-export const PostOffice = ({ position }: PostOfficeProps) => {
+export const PostOffice = ({ position, containerSize }: PostOfficeProps) => {
+  // Calculate size based on container dimensions
+  const size = Math.min(containerSize.width, containerSize.height) * 0.1;
+
   return (
     <div
-      className="absolute w-16 h-16 transform -translate-x-1/2 -translate-y-1/2"
+      className="absolute transform -translate-x-1/2 -translate-y-1/2"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
+        fontSize: `${size}px`,
       }}
     >
-      <div className="flex flex-col items-center">
-        <span className="text-3xl">🏤</span>
-        <span className="text-white text-xs mt-1">Post Office</span>
-      </div>
+      <span role="img" aria-label="post office">🏤</span>
     </div>
   );
 }; 

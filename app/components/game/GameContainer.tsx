@@ -10,11 +10,42 @@ import { BackgroundMusic } from './BackgroundMusic';
 import { GameBackground } from './GameBackground';
 
 export const GameContainer = () => {
-  // Generate random position within game bounds
-  const getRandomPosition = () => ({
-    x: Math.floor(Math.random() * 600) + 100, // Between 100 and 700
-    y: Math.floor(Math.random() * 400) + 100, // Between 100 and 500
+  // Adjust game boundaries for better mobile visibility
+  const GAME_BOUNDS = {
+    width: 400,  // Reduced from 600
+    height: 350  // Reduced from 500
+  };
+
+  // Add state for container dimensions
+  const [containerSize, setContainerSize] = useState({ width: 400, height: 350 });
+  
+  // Update container size on mount and resize
+  useEffect(() => {
+    const updateSize = () => {
+      const container = document.querySelector('.game-container');
+      if (container) {
+        const { width, height } = container.getBoundingClientRect();
+        setContainerSize({ width, height });
+      }
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  // Calculate scaled positions based on container size
+  const getScaledPosition = (x: number, y: number) => ({
+    x: (x / GAME_BOUNDS.width) * containerSize.width,
+    y: (y / GAME_BOUNDS.height) * containerSize.height,
   });
+
+  // Generate random position within smaller bounds
+  const getRandomPosition = () => {
+    const baseX = Math.floor(Math.random() * (GAME_BOUNDS.width - 100)) + 50;
+    const baseY = Math.floor(Math.random() * (GAME_BOUNDS.height - 100)) + 50;
+    return getScaledPosition(baseX, baseY);
+  };
 
   // Generate parcels with random positions
   const generateParcels = () => [
@@ -42,12 +73,18 @@ export const GameContainer = () => {
   const [obstacles, setObstacles] = useState(generateObstacles());
   const [isInvulnerable, setIsInvulnerable] = useState(false);
   const [hasCollectedParcels, setHasCollectedParcels] = useState(false);
-  const postOfficePosition = { x: 700, y: 550 };
 
-  const COLLECTION_RADIUS = 40; // Smaller radius for actual collection
+  // Update post office position to be responsive
+  const basePostOfficePosition = { x: 350, y: 300 };
+  const postOfficePosition = getScaledPosition(
+    basePostOfficePosition.x,
+    basePostOfficePosition.y
+  );
+
+  const COLLECTION_RADIUS = 25; // Reduced from 40 to make collection more precise
   const PLAYER_SPEED = 3;
-  const ATTRACTION_RADIUS = 200; // Keep magnetic effect radius large
-  const ATTRACTION_STRENGTH = 0.2; // Stronger magnetic pull (was 0.1)
+  const ATTRACTION_RADIUS = 80; // Reduced from 200 to make magnetic effect smaller
+  const ATTRACTION_STRENGTH = 0.1; // Reduced from 0.2 to make pull gentler
 
   const [playerDirection, setPlayerDirection] = useState<'left' | 'right' | 'up' | 'down'>('right');
 
@@ -69,7 +106,7 @@ export const GameContainer = () => {
         const dy = newPosition.y - parcel.position.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Magnetic effect (doesn't collect the parcel)
+        // Only apply magnetic effect when very close
         if (distance < ATTRACTION_RADIUS && !parcel.collected) {
           newParcels[index] = {
             ...parcel,
@@ -80,7 +117,7 @@ export const GameContainer = () => {
           };
         }
 
-        // Only collect when player actually touches the parcel
+        // Stricter collection check
         if (distance < COLLECTION_RADIUS) {
           newParcels[index] = {
             ...parcel,
@@ -89,7 +126,6 @@ export const GameContainer = () => {
           
           setGameState(prev => ({ ...prev, score: prev.score + 100 }));
           
-          // Visual and audio feedback
           try {
             const audio = new Audio('/collect.mp3');
             audio.volume = 0.3;
@@ -108,18 +144,21 @@ export const GameContainer = () => {
     setParcels(newParcels);
     setHasCollectedParcels(allParcelsCollected);
 
-    // Check post office delivery
-    if (hasCollectedParcels &&
-        Math.abs(newPosition.x - postOfficePosition.x) < 40 && 
-        Math.abs(newPosition.y - postOfficePosition.y) < 40) {
-      // Level complete!
-      setGameState(prev => ({
-        ...prev,
-        score: prev.score + 500,
-        level: prev.level + 1,
-      }));
-      resetLevel(); // Reset level with new positions
-      return;
+    // Update post office delivery check to match collection radius
+    if (hasCollectedParcels) {
+      const dx = newPosition.x - postOfficePosition.x;
+      const dy = newPosition.y - postOfficePosition.y;
+      const distanceToPostOffice = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distanceToPostOffice < COLLECTION_RADIUS) {
+        setGameState(prev => ({
+          ...prev,
+          score: prev.score + 500,
+          level: prev.level + 1,
+        }));
+        resetLevel();
+        return;
+      }
     }
 
     // Check obstacle collisions
@@ -197,31 +236,47 @@ export const GameContainer = () => {
           newPosition.y = Math.max(0, playerPosition.y - PLAYER_SPEED);
           break;
         case 'down':
-          newPosition.y = Math.min(540, playerPosition.y + PLAYER_SPEED);
+          newPosition.y = Math.min(GAME_BOUNDS.height, playerPosition.y + PLAYER_SPEED);
           break;
         case 'left':
           newPosition.x = Math.max(0, playerPosition.x - PLAYER_SPEED);
           break;
         case 'right':
-          newPosition.x = Math.min(740, playerPosition.x + PLAYER_SPEED);
+          newPosition.x = Math.min(GAME_BOUNDS.width, playerPosition.x + PLAYER_SPEED);
           break;
       }
 
-      // Handle wall collisions by changing direction
+      // Update boundary checks
       if (newPosition.x <= 0) setPlayerDirection('right');
-      if (newPosition.x >= 740) setPlayerDirection('left');
+      if (newPosition.x >= GAME_BOUNDS.width) setPlayerDirection('left');
       if (newPosition.y <= 0) setPlayerDirection('down');
-      if (newPosition.y >= 540) setPlayerDirection('up');
+      if (newPosition.y >= GAME_BOUNDS.height) setPlayerDirection('up');
 
       checkCollisions(newPosition);
       setPlayerPosition(newPosition);
-    }, 16); // ~60fps
+    }, 16);
 
     return () => clearInterval(moveInterval);
-  }, [gameState.status, playerPosition, playerDirection, checkCollisions]);
+  }, [gameState.status, playerPosition, playerDirection]);
+
+  // Add state for orientation
+  const [isPortrait, setIsPortrait] = useState(false);
+  
+  // Check orientation on mount and window resize
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
 
   return (
-    <div className="relative w-full h-[600px] rounded-lg overflow-hidden shadow-lg">
+    <div 
+      className="relative w-full aspect-[4/3] max-w-4xl mx-auto rounded-lg overflow-hidden shadow-lg game-container"
+    >
       <GameBackground />
       
       <div className="absolute inset-0 bg-black/10" />
@@ -266,7 +321,10 @@ export const GameContainer = () => {
         direction={playerDirection}
         isInvulnerable={isInvulnerable} 
       />
-      <PostOffice position={postOfficePosition} />
+      <PostOffice 
+        position={postOfficePosition}
+        containerSize={containerSize}
+      />
       {parcels.map(parcel => (
         <Parcel 
           key={parcel.id} 
@@ -317,6 +375,29 @@ export const GameContainer = () => {
           >
             Try Again
           </button>
+        </div>
+      )}
+
+      {/* Landscape mode recommendation */}
+      {isPortrait && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-auto text-center transform transition-all animate-fade-in">
+            <div className="mb-4 text-4xl animate-bounce">📱↔️</div>
+            <h3 className="text-xl font-bold mb-2 text-gray-800">
+              Rotate for Better Experience
+            </h3>
+            <p className="text-gray-600 mb-4">
+              This game is best played in landscape mode. Please rotate your device for the optimal gaming experience!
+            </p>
+            <button
+              onClick={() => setIsPortrait(false)}
+              className="bg-blue-500 text-white px-6 py-2 rounded-full
+                         hover:bg-blue-600 transition-colors
+                         shadow-lg hover:shadow-xl"
+            >
+              Continue Anyway
+            </button>
+          </div>
         </div>
       )}
     </div>
