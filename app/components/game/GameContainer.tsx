@@ -7,6 +7,7 @@ import { Obstacle } from './Obstacle';
 import { PostOffice } from './PostOffice';
 import type { GameState, Position } from '../../types/game';
 import { BackgroundMusic } from './BackgroundMusic';
+import { GameBackground } from './GameBackground';
 
 export const GameContainer = () => {
   // Generate random position within game bounds
@@ -172,7 +173,11 @@ export const GameContainer = () => {
   }, [gameState.status, playerPosition, playerDirection]);
 
   return (
-    <div className="relative w-full h-[600px] bg-gray-800 border-2 border-gray-700 rounded-lg overflow-hidden shadow-lg">
+    <div className="relative w-full h-[600px] rounded-lg overflow-hidden shadow-lg">
+      <GameBackground />
+      
+      <div className="absolute inset-0 bg-black/10" />
+      
       <BackgroundMusic isPlaying={gameState.status === 'playing'} />
       
       {/* Game UI */}
