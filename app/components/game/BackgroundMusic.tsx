@@ -3,22 +3,21 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface BackgroundMusicProps {
-  isPlaying: boolean;
+  isPlaying?: boolean; // Make isPlaying optional
 }
 
-export const BackgroundMusic = ({ isPlaying }: BackgroundMusicProps) => {
+export const BackgroundMusic = ({ isPlaying = true }: BackgroundMusicProps) => {
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Try to play audio as soon as component mounts
-    if (audioRef.current) {
-      audioRef.current.volume = 0.3; // Set volume to 30%
+    if (audioRef.current && isPlaying) {
+      audioRef.current.volume = 0.3;
       audioRef.current.play().catch(e => {
         console.log('Waiting for user interaction before playing audio:', e);
       });
     }
-  }, []); // Empty dependency array means this runs once on mount
+  }, [isPlaying]);
 
   const toggleMute = () => {
     if (audioRef.current) {

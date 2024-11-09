@@ -14,18 +14,14 @@ export const GameBackground = () => {
           <path d="M 500 150 q 20 -15 40 0 q 20 -15 40 0 q 20 -15 40 0 q -20 15 -60 15 q -40 0 -60 -15" fill="white" />
         </g>
 
-        {/* Road */}
-        <rect x="0" y="400" width="800" height="200" fill="#808080" />
-        <rect x="0" y="450" width="800" height="5" fill="white" strokeDasharray="10 20" />
-        
         {/* Houses - Left Side */}
-        <g className="houses-left">
+        <g>
           {/* House 1 */}
           <rect x="50" y="200" width="100" height="200" fill="#FFB6C1" />
           <polygon points="50,200 100,150 150,200" fill="#CD5C5C" />
-          <rect x="80" y="250" width="40" height="60" fill="#8B4513" /> {/* Door */}
-          <rect x="70" y="220" width="30" height="30" fill="#87CEEB" /> {/* Window */}
-          <rect x="100" y="220" width="30" height="30" fill="#87CEEB" /> {/* Window */}
+          <rect x="80" y="250" width="40" height="60" fill="#8B4513" />
+          <rect x="70" y="220" width="30" height="30" fill="#87CEEB" />
+          <rect x="100" y="220" width="30" height="30" fill="#87CEEB" />
           
           {/* House 2 */}
           <rect x="200" y="220" width="100" height="180" fill="#98FB98" />
@@ -36,7 +32,7 @@ export const GameBackground = () => {
         </g>
 
         {/* Houses - Right Side */}
-        <g className="houses-right">
+        <g>
           {/* House 3 */}
           <rect x="500" y="210" width="100" height="190" fill="#DEB887" />
           <polygon points="500,210 550,160 600,210" fill="#8B4513" />
@@ -52,16 +48,28 @@ export const GameBackground = () => {
           <rect x="700" y="250" width="30" height="30" fill="#87CEEB" />
         </g>
 
+        {/* Road */}
+        <rect x="0" y="400" width="800" height="200" fill="#808080" />
+        <rect x="0" y="450" width="800" height="5" fill="white" strokeDasharray="10 20" />
+        
         {/* Trees */}
-        <g className="trees">
-          <circle cx="150" y="380" r="20" fill="#228B22" />
+        <g>
+          <circle cx="150" cy="380" r="20" fill="#228B22" />
           <rect x="145" y="380" width="10" height="20" fill="#8B4513" />
           
-          <circle cx="400" y="380" r="25" fill="#228B22" />
+          <circle cx="400" cy="380" r="25" fill="#228B22" />
           <rect x="395" y="380" width="10" height="25" fill="#8B4513" />
           
-          <circle cx="600" y="380" r="20" fill="#228B22" />
+          <circle cx="600" cy="380" r="20" fill="#228B22" />
           <rect x="595" y="380" width="10" height="20" fill="#8B4513" />
+        </g>
+
+        {/* Bushes */}
+        <g>
+          <circle cx="100" cy="420" r="15" fill="#228B22" />
+          <circle cx="300" cy="420" r="15" fill="#228B22" />
+          <circle cx="500" cy="420" r="15" fill="#228B22" />
+          <circle cx="700" cy="420" r="15" fill="#228B22" />
         </g>
       </svg>
     </div>

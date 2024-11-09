@@ -44,7 +44,11 @@ export const GameContainer = () => {
   const [hasCollectedParcels, setHasCollectedParcels] = useState(false);
   const postOfficePosition = { x: 700, y: 550 };
 
-  const PLAYER_SPEED = 3; // Pixels per frame
+  const COLLECTION_RADIUS = 40; // Smaller radius for actual collection
+  const PLAYER_SPEED = 3;
+  const ATTRACTION_RADIUS = 200; // Keep magnetic effect radius large
+  const ATTRACTION_STRENGTH = 0.2; // Stronger magnetic pull (was 0.1)
+
   const [playerDirection, setPlayerDirection] = useState<'left' | 'right' | 'up' | 'down'>('right');
 
   // Function to reset level with new positions
@@ -56,19 +60,52 @@ export const GameContainer = () => {
   };
 
   const checkCollisions = (newPosition: Position) => {
-    // Check parcel collection
     let allParcelsCollected = true;
+    const newParcels = [...parcels];
+    
     parcels.forEach((parcel, index) => {
-      if (!parcel.collected && 
-          Math.abs(newPosition.x - parcel.position.x) < 30 && 
-          Math.abs(newPosition.y - parcel.position.y) < 30) {
-        const newParcels = [...parcels];
-        newParcels[index].collected = true;
-        setParcels(newParcels);
-        setGameState(prev => ({ ...prev, score: prev.score + 100 }));
+      if (!parcel.collected) {
+        const dx = newPosition.x - parcel.position.x;
+        const dy = newPosition.y - parcel.position.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Magnetic effect (doesn't collect the parcel)
+        if (distance < ATTRACTION_RADIUS && !parcel.collected) {
+          newParcels[index] = {
+            ...parcel,
+            position: {
+              x: parcel.position.x + dx * ATTRACTION_STRENGTH,
+              y: parcel.position.y + dy * ATTRACTION_STRENGTH
+            }
+          };
+        }
+
+        // Only collect when player actually touches the parcel
+        if (distance < COLLECTION_RADIUS) {
+          newParcels[index] = {
+            ...parcel,
+            collected: true
+          };
+          
+          setGameState(prev => ({ ...prev, score: prev.score + 100 }));
+          
+          // Visual and audio feedback
+          try {
+            const audio = new Audio('/collect.mp3');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+          } catch (e) {
+            console.log('Audio feedback failed:', e);
+          }
+        }
+
+        if (!newParcels[index].collected) {
+          allParcelsCollected = false;
+        }
       }
-      if (!parcel.collected) allParcelsCollected = false;
     });
+
+    setParcels(newParcels);
     setHasCollectedParcels(allParcelsCollected);
 
     // Check post office delivery
@@ -107,6 +144,17 @@ export const GameContainer = () => {
     }
   };
 
+  // Add visual indicator for nearby parcels with improved visibility
+  const getNearbyParcels = () => {
+    return parcels.filter(parcel => {
+      if (parcel.collected) return false;
+      const dx = playerPosition.x - parcel.position.x;
+      const dy = playerPosition.y - parcel.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < ATTRACTION_RADIUS; // Show indicator when in attraction range
+    });
+  };
+
   // Handle direction changes with arrow keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -141,7 +189,7 @@ export const GameContainer = () => {
     if (gameState.status !== 'playing') return;
 
     const moveInterval = setInterval(() => {
-      let newPosition = { ...playerPosition };
+      const newPosition = { ...playerPosition };
 
       // Move in the current direction
       switch (playerDirection) {
@@ -170,7 +218,7 @@ export const GameContainer = () => {
     }, 16); // ~60fps
 
     return () => clearInterval(moveInterval);
-  }, [gameState.status, playerPosition, playerDirection]);
+  }, [gameState.status, playerPosition, playerDirection, checkCollisions]);
 
   return (
     <div className="relative w-full h-[600px] rounded-lg overflow-hidden shadow-lg">
@@ -191,10 +239,26 @@ export const GameContainer = () => {
       {gameState.status === 'playing' && (
         <div className="absolute top-16 left-4 right-4 text-center text-white text-sm">
           {!hasCollectedParcels 
-            ? "Collect all parcels! 📦" 
+            ? `Collect all parcels! 📦 (${parcels.filter(p => !p.collected).length} remaining)`
             : "Deliver to the Post Office! 🏤"}
         </div>
       )}
+
+      {/* Enhanced Parcel Collection Indicators */}
+      {getNearbyParcels().map(parcel => (
+        <div
+          key={`indicator-${parcel.id}`}
+          className="absolute w-40 h-40 animate-pulse"
+          style={{
+            left: `${parcel.position.x}px`,
+            top: `${parcel.position.y}px`,
+            transform: 'translate(-50%, -50%)',
+            background: 'radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 70%)',
+            pointerEvents: 'none',
+            zIndex: 1,
+          }}
+        />
+      ))}
 
       {/* Game Elements */}
       <Player 
@@ -204,7 +268,11 @@ export const GameContainer = () => {
       />
       <PostOffice position={postOfficePosition} />
       {parcels.map(parcel => (
-        <Parcel key={parcel.id} {...parcel} />
+        <Parcel 
+          key={parcel.id} 
+          {...parcel}
+          isNearby={getNearbyParcels().some(p => p.id === parcel.id)}
+        />
       ))}
       {obstacles.map(obstacle => (
         <Obstacle key={obstacle.id} {...obstacle} />

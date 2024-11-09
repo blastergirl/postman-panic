@@ -3,11 +3,10 @@ import { useRef, useEffect, useState } from 'react';
 interface PlayerProps {
   position: { x: number; y: number };
   direction?: 'left' | 'right' | 'up' | 'down';
-  onUpdate?: (position: { x: number; y: number }) => void;
   isInvulnerable?: boolean;
 }
 
-export const Player = ({ position, direction = 'right', onUpdate, isInvulnerable }: PlayerProps) => {
+export const Player = ({ position, direction = 'right', isInvulnerable }: PlayerProps) => {
   const playerRef = useRef<HTMLDivElement>(null);
   const [walking, setWalking] = useState(true);
 
